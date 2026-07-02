@@ -140,6 +140,9 @@ function handleClick(event: Event): void {
     case "toggle-model":
       toggleModelInField(actionEl.dataset.modelChip ?? "");
       break;
+    case "toggle-step":
+      toggleStepDetails(actionEl.dataset.detailsTarget ?? "");
+      break;
     default:
       break;
   }
@@ -198,6 +201,25 @@ function handleKeydown(event: Event): void {
   if (target && target.id === "message-input" && keyboardEvent.key === "Enter" && !keyboardEvent.shiftKey) {
     keyboardEvent.preventDefault();
     void sendMessage(hooks.getComposerTextarea());
+  }
+}
+
+/**
+ * 点击编排看板卡片 → toggle 对应 step 分组的 details 展开态。
+ * 直接改 details.open 即可：paintTimeline 增量重绘会依 data-details-key 保留展开态，无需重渲染。
+ */
+function toggleStepDetails(key: string): void {
+  if (!key) {
+    return;
+  }
+  for (const details of document.querySelectorAll<HTMLDetailsElement>("details[data-details-key]")) {
+    if (details.dataset.detailsKey === key) {
+      details.open = !details.open;
+      if (details.open) {
+        details.scrollIntoView({ block: "nearest" });
+      }
+      return;
+    }
   }
 }
 

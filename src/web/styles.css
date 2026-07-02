@@ -603,6 +603,191 @@ pre {
   border-bottom-left-radius: 0;
 }
 
+/* Orchestration board / 编排看板 -------------------------------------------- */
+
+.orch-board {
+  margin: 4px 0 10px 32px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  padding: 12px 14px 14px;
+}
+
+.orch-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #d0d1d5;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.orch-head .icon {
+  color: var(--accent);
+}
+
+.orch-meta {
+  margin-left: auto;
+  color: var(--faint);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.orch-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.orch-step {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  border: 1px solid var(--line-soft);
+  border-left: 2px solid var(--line);
+  border-radius: var(--radius-xs);
+  background: var(--panel-2);
+  padding: 9px 11px;
+}
+
+.orch-step.is-clickable {
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.orch-step.is-clickable:hover {
+  border-color: var(--line);
+  background: var(--panel-3);
+}
+
+.orch-step-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.orch-step-id {
+  font-family: "SFMono-Regular", "JetBrains Mono", Consolas, monospace;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.orch-state {
+  border-radius: var(--radius-xs);
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--panel-3);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.orch-runner {
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.orch-step-title {
+  color: var(--text);
+  font-size: 12.5px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.orch-step-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.orch-dep {
+  border-radius: var(--radius-xs);
+  padding: 1px 7px;
+  font-family: "SFMono-Regular", "JetBrains Mono", Consolas, monospace;
+  font-size: 10.5px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.orch-attempt {
+  border-radius: var(--radius-xs);
+  padding: 1px 7px;
+  font-size: 10.5px;
+  font-weight: 600;
+  background: rgba(214, 168, 92, 0.14);
+  color: #e0b978;
+}
+
+.orch-usage {
+  color: var(--faint);
+  font-size: 10.5px;
+}
+
+.orch-step-detail {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+/* 左侧状态色条 + 状态标签配色（克制：仅描边/浅底，不堆渐变） */
+.orch-step--running {
+  border-left-color: var(--accent);
+}
+
+.orch-step--retrying {
+  border-left-color: #d6a85c;
+}
+
+.orch-step--completed {
+  border-left-color: var(--ok);
+}
+
+.orch-step--failed {
+  border-left-color: var(--danger);
+}
+
+.orch-step--skipped {
+  border-left-color: var(--faint);
+}
+
+.orch-step--pending {
+  border-left-color: var(--line);
+}
+
+.orch-state--running {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.orch-state--retrying {
+  background: rgba(214, 168, 92, 0.14);
+  color: #e0b978;
+}
+
+.orch-state--completed {
+  background: rgba(75, 189, 121, 0.14);
+  color: #7fd3a1;
+}
+
+.orch-state--failed {
+  background: rgba(240, 100, 100, 0.14);
+  color: #ef9b9b;
+}
+
+.orch-state--skipped {
+  background: var(--panel-3);
+  color: var(--faint);
+}
+
 /* Empty -------------------------------------------------------------------- */
 
 .empty {
@@ -1673,8 +1858,25 @@ textarea:focus {
 
   .plan-card,
   .dispatch-sep,
-  .process-group {
+  .process-group,
+  .orch-board {
     margin-left: 0;
+  }
+
+  .orch-board {
+    padding: 11px 12px 12px;
+  }
+
+  .orch-steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .orch-step-top {
+    flex-wrap: wrap;
+  }
+
+  .orch-runner {
+    margin-left: auto;
   }
 
   .settings-body {

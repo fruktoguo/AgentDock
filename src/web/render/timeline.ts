@@ -1,7 +1,15 @@
 import { icon } from "../icons.js";
 import { runnerLabel } from "../state.js";
 import type { AgentEvent, AgentMessage, AgentSession } from "../types.js";
-import { compareCreatedAt, escapeHtml, eventIcon, formatBody, isInsideTurn } from "../utils.js";
+import {
+  compareCreatedAt,
+  escapeHtml,
+  eventIcon,
+  formatBody,
+  formatUsageSummary,
+  isInsideTurn,
+} from "../utils.js";
+import { isStructuredOrchestrationEvent, renderOrchestrationBoard, PLAN_RAW_TYPE } from "./orchestration.js";
 
 /** 会话时间线渲染：把消息气泡和底层 Agent 事件按用户 turn 归组。 */
 export function renderTimeline(session: AgentSession): string {
@@ -69,14 +77,28 @@ function renderProcessSection(events: AgentEvent[], fallbackName: string): strin
     return "";
   }
   const out: string[] = [];
+
+  // 1. 编排看板（结构化事件驱动）。空串 = 无计划事件或 JSON 损坏 → 不出看板，走下方回退。
+  const board = renderOrchestrationBoard(events);
+  const boardRendered = board.length > 0;
+  if (boardRendered) {
+    out.push(board);
+  }
+
+  // 2. 计划卡片：看板已渲染则跳过被其消费的 orchestrator.plan；
+  //    损坏的 orchestrator.plan / 旧式 plan 事件继续走 renderPlanCard 的 <pre> 回退。
   for (const event of events.filter((item) => item.kind === "plan")) {
+    if (boardRendered && event.rawType === PLAN_RAW_TYPE) {
+      continue;
+    }
     out.push(renderPlanCard(event));
   }
 
+  // 3. 子任务分组：按 group 归组，结构化事件不入桶（既避免 JSON 噪音，也避免仅有状态事件的空分组）。
   const groupOrder: string[] = [];
   const buckets = new Map<string, AgentEvent[]>();
   for (const event of events) {
-    if (event.kind === "plan" || !event.group) {
+    if (event.kind === "plan" || !event.group || isStructuredOrchestrationEvent(event)) {
       continue;
     }
     if (!buckets.has(event.group)) {
@@ -90,7 +112,11 @@ function renderProcessSection(events: AgentEvent[], fallbackName: string): strin
   }
 
   const ungrouped = events.filter(
-    (event) => event.kind !== "plan" && event.kind !== "dispatch" && !event.group,
+    (event) =>
+      event.kind !== "plan" &&
+      event.kind !== "dispatch" &&
+      !event.group &&
+      !isStructuredOrchestrationEvent(event),
   );
   if (ungrouped.length > 0) {
     out.push(renderProcessGroup(ungrouped, fallbackName, `ung:${ungrouped[0]!.id}`));
@@ -113,13 +139,19 @@ function renderPlanCard(event: AgentEvent): string {
 }
 
 function renderSubtaskGroup(events: AgentEvent[], groupId: string): string {
+  // 结构化 orchestrator.step 事件已在归组时排除；此处 events 均为人读 dispatch + 子任务底层事件。
+  // 优先用子任务事件的 source（执行体展示名），退回派发事件 source。
   const dispatch = events.find((event) => event.kind === "dispatch");
-  const source = dispatch?.source || events.find((event) => event.source)?.source || groupId;
-  const body = events.filter((event) => event.kind !== "dispatch");
+  const source =
+    events.find((event) => event.source && event.kind !== "dispatch")?.source ||
+    dispatch?.source ||
+    events.find((event) => event.source)?.source ||
+    groupId;
+  const body = events; // 人读 dispatch（含 instruction 全文）与子任务底层事件照旧进 details
   const failed = events.some((event) => event.kind === "error" || event.status === "failed");
   const completed = events.some((event) => event.status === "completed" || event.rawType === "turn.completed");
   const status = failed ? "失败" : completed ? "完成" : "处理中";
-  const usage = usageSummary(events);
+  const usage = formatUsageSummary(events);
   const summary = [`${body.length} 个事件`, usage].filter(Boolean).join(" · ");
   return `
     <div class="dispatch-sep">${icon("send")} 派发给 <strong>${escapeHtml(source)}</strong></div>
@@ -144,7 +176,7 @@ function renderProcessGroup(events: AgentEvent[], fallbackName: string, key: str
   const status = failed ? "失败" : completed ? "完成" : "处理中";
   const source = events.find((event) => event.source)?.source || fallbackName;
   const threadId = events.find((event) => event.rawType === "thread.started" || event.rawType === "claude.session")?.body.trim();
-  const usage = usageSummary(events);
+  const usage = formatUsageSummary(events);
   const summaryParts = [threadId ? `会话 ${threadId}` : "", usage, `${events.length} 个底层事件`].filter(Boolean);
 
   return `
@@ -176,17 +208,3 @@ function renderProcessEvent(event: AgentEvent): string {
   `;
 }
 
-function usageSummary(events: AgentEvent[]): string {
-  const usage = events.find((event) => event.kind === "usage" && event.body.trim());
-  if (!usage) {
-    return "";
-  }
-  try {
-    const parsed = JSON.parse(usage.body) as { input_tokens?: number; output_tokens?: number };
-    const input = parsed.input_tokens === undefined ? "" : `输入 ${parsed.input_tokens}`;
-    const output = parsed.output_tokens === undefined ? "" : `输出 ${parsed.output_tokens}`;
-    return [input, output].filter(Boolean).join(" / ");
-  } catch {
-    return "Token 用量已记录";
-  }
-}

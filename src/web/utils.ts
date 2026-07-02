@@ -1,4 +1,4 @@
-import type { AgentEventKind, AgentStatus } from "./types.js";
+import type { AgentEvent, AgentEventKind, AgentStatus } from "./types.js";
 import { icon } from "./icons.js";
 
 export function statusLabel(status: AgentStatus): string {
@@ -45,4 +45,20 @@ export function compareCreatedAt(left: { createdAt: string }, right: { createdAt
 export function isInsideTurn(createdAt: string, start: number, end: number): boolean {
   const current = Date.parse(createdAt);
   return current >= start && current < end;
+}
+
+/** 从一组事件里提取 token 用量摘要（输入 / 输出）。找不到 usage 事件返回空串。 */
+export function formatUsageSummary(events: AgentEvent[]): string {
+  const usage = events.find((event) => event.kind === "usage" && event.body.trim());
+  if (!usage) {
+    return "";
+  }
+  try {
+    const parsed = JSON.parse(usage.body) as { input_tokens?: number; output_tokens?: number };
+    const input = parsed.input_tokens === undefined ? "" : `输入 ${parsed.input_tokens}`;
+    const output = parsed.output_tokens === undefined ? "" : `输出 ${parsed.output_tokens}`;
+    return [input, output].filter(Boolean).join(" / ");
+  } catch {
+    return "Token 用量已记录";
+  }
 }
