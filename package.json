@@ -1,0 +1,17 @@
+{
+  "name": "agentdock",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "npm run build && node dist/server/index.js",
+    "start": "node dist/server/index.js"
+  },
+  "dependencies": {
+    "@openai/codex-sdk": "^0.142.5"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}
